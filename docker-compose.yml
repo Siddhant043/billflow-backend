@@ -1,0 +1,36 @@
+services:
+  redis:
+    image: redis/redis-stack:latest
+    container_name: billflow_redis_stack
+    ports:
+      - "6379:6379"
+    volumes:
+      - billflow_redis:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: billflow_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: billflow_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: billflowdb
+    volumes:
+      - billflow_postgres:/var/lib/postgresql/data
+
+volumes:
+  billflow_redis:
+  billflow_postgres:
+
+
