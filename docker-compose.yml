@@ -5,6 +5,7 @@ services:
     container_name: billflow_redis_stack
     ports:
       - "6379:6379"
+      - "8001:8001"
     volumes:
       - billflow_redis:/data
 
@@ -23,6 +24,7 @@ services:
     container_name: billflow_postgres
     ports:
       - "5432:5432"
+      - "3005:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password

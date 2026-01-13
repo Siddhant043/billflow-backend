@@ -26,17 +26,19 @@ async def register(
 ):
     """Register a new user."""
     # Check if user already exists
-    user = await db.execute(select(User).filter_by(email=user_info.email))
-    if user:
+    result = await db.execute(select(User).filter_by(email=user_info.email))
+    existing_user = result.scalar_one_or_none()
+    if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
     
+    print("password", user_info.password)
     # Create user
     user = User(
         email=user_info.email,
         hashed_password=get_password_hash(user_info.password),
         full_name=user_info.full_name,
         company_name=user_info.company_name,
-        phone=user_info.phone,
+        phone_number=user_info.phone_number,
         address=user_info.address
     )
     db.add(user)
@@ -47,13 +49,8 @@ async def register(
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
     
-    # Return user and tokens
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    # Return user (will be automatically converted via from_attributes=True)
+    return user
 
 @router.post("/login", response_model=Token)
 async def login(
