@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -9,6 +9,7 @@ from app.core.database import Base
 class Client(Base):
     __tablename__="clients"
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(225), nullable=False)
     email = Column(String(225), nullable=False)
     phone_number = Column(String(225), nullable=False)
@@ -19,6 +20,7 @@ class Client(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     #Relationships
+    user = relationship("User", back_populates="clients")
     invoices = relationship("Invoice", back_populates="client", cascade="all, delete-orphan")
 
     def __repr__(self):
