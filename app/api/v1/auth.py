@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -14,12 +13,12 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.token import Token, RefreshTokenRequest
-from datetime import timedelta
+from app.utils.dependencies import get_login_data, UnifiedLoginRequest
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register")
 async def register(
     user_info: UserCreate,
     db: AsyncSession = Depends(get_db)
@@ -31,7 +30,6 @@ async def register(
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
     
-    print("password", user_info.password)
     # Create user
     user = User(
         email=user_info.email,
@@ -49,19 +47,78 @@ async def register(
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
     
-    # Return user (will be automatically converted via from_attributes=True)
-    return user
+    # Return user
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        access_token=access_token,
+        refresh_token=refresh_token
+    )
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="User login",
+    description="""
+    Login endpoint that supports both JSON and form-encoded requests.
+    
+    **JSON Request** (Content-Type: application/json):
+    ```json
+    {
+        "email": "user@example.com",
+        "password": "yourpassword"
+    }
+    ```
+    
+    **Form-encoded Request** (Content-Type: application/x-www-form-urlencoded):
+    - username: user@example.com (email address)
+    - password: yourpassword
+    """,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "email": {"type": "string", "format": "email"},
+                            "password": {"type": "string", "format": "password"}
+                        },
+                        "required": ["email", "password"]
+                    },
+                    "example": {
+                        "email": "user@example.com",
+                        "password": "yourpassword"
+                    }
+                },
+                "application/x-www-form-urlencoded": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "username": {"type": "string", "description": "Email address"},
+                            "password": {"type": "string", "format": "password"}
+                        },
+                        "required": ["username", "password"]
+                    }
+                }
+            }
+        }
+    }
+)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    login_data: UnifiedLoginRequest = Depends(get_login_data),
     db: AsyncSession = Depends(get_db)
 ):
-    """Login and get access and refresh tokens."""
+    """Login and get access and refresh tokens.
+    
+    Supports both JSON (application/json) and form-encoded (application/x-www-form-urlencoded) requests.
+    For form-encoded requests, use 'username' field (which should contain the email).
+    For JSON requests, use 'email' and 'password' fields.
+    """
     # Get user
-    user = await db.execute(select(User).where(User.email == form_data.username))
+    user = await db.execute(select(User).where(User.email == login_data.email))
     user = user.scalar_one_or_none()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

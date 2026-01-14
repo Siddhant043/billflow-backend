@@ -24,7 +24,6 @@ services:
     container_name: billflow_postgres
     ports:
       - "5432:5432"
-      - "3005:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 class Token(BaseModel):
@@ -10,6 +10,10 @@ class TokenPayload(BaseModel):
     sub: Optional[str] = None
     exp: Optional[int] = None
     type: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str

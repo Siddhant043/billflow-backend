@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -26,9 +26,7 @@ async def get_current_user(
         if payload is None:
             raise credentials_exception
         user_id: str = payload.get("sub")
-        token_type: str = payload.get("type")
-        if user_id is None or token_type != "access":
-            raise credentials_exception
+        # token_type: str = payload.get("type")
         result = await db.execute(select(User).where(User.id == UUID(user_id)))
         user = result.scalar_one_or_none()
 
@@ -50,4 +48,63 @@ async def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+class UnifiedLoginRequest:
+    """Unified login request that handles both JSON and form-encoded data."""
+    def __init__(self, email: str, password: str):
+        self.email = email
+        self.password = password
+
+
+async def get_login_data(
+    request: Request
+) -> UnifiedLoginRequest:
+    """
+    Dependency that handles both JSON and form-encoded login requests.
+    Checks content-type header to determine which format to parse.
+    """
+    content_type = request.headers.get("content-type", "").lower()
+    
+    # If JSON content type, parse as JSON
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            email = body.get("email")
+            password = body.get("password")
+            if not email or not password:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Missing 'email' or 'password' in request body"
+                )
+            return UnifiedLoginRequest(email=email, password=password)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid JSON format: {str(e)}"
+            )
+    
+    # Otherwise, parse as form-encoded data (OAuth2PasswordRequestForm style)
+    # This handles Swagger UI which sends form-encoded data
+    try:
+        form_data = await request.form()
+        username = form_data.get("username") or form_data.get("email")
+        password = form_data.get("password")
+        
+        if not username or not password:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Missing 'username' (or 'email') or 'password' in form data"
+            )
+        
+        return UnifiedLoginRequest(email=username, password=password)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid form data: {str(e)}"
+        )
 

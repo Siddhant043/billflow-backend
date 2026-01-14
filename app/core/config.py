@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
     API_V1_PREFIX: str = os.getenv("API_V1_PREFIX", "/api/v1")
-    BACKEND_CORS_ORIGINS: List[str] = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+    BACKEND_CORS_ORIGINS: List[str] = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000").split(",")
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/billflowdb")

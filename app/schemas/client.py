@@ -5,8 +5,8 @@ from uuid import UUID
 
 class ClientBase(BaseModel):
     name: str
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
+    email: EmailStr = Field(..., description="The email of the client")
+    phone_number: Optional[str] = None
     address: Optional[str] = None
     company: Optional[str] = None
     gst_number: Optional[str] = None
@@ -17,7 +17,7 @@ class ClientCreate(ClientBase):
 class ClientUpdate(ClientBase):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
-    phone: Optional[str] = None
+    phone_number: Optional[str] = None
     address: Optional[str] = None
     company: Optional[str] = None
     gst_number: Optional[str] = None

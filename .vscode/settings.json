@@ -1,0 +1,12 @@
+{
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "driver": "PostgreSQL",
+      "name": "billflow_db",
+      "connectString": "postgresql+asyncpg://user:password@localhost:5432/billflowdb"
+    }
+  ]
+}
