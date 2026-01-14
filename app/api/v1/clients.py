@@ -10,7 +10,7 @@ from app.utils.dependencies import get_current_active_user
 from app.models.client import Client
 from app.services.client_service import ClientService
 
-router = APIRouter(prefix="/client", tags=["clients"])
+router = APIRouter(prefix="/clients", tags=["clients"])
 
 @router.get("/", response_model=List[ClientResponse])
 async def list_clients(

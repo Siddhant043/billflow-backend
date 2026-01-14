@@ -15,7 +15,10 @@ class Client(Base):
     phone_number = Column(String(225), nullable=False)
     address = Column(String(225), nullable=False)
     company=Column(String(225), nullable=False)
+    logo_url=Column(String(225))
     gst_number=Column(String(225), nullable=False)
+    website=Column(String(225))
+    notes=Column(String(225))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

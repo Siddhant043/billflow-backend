@@ -9,7 +9,10 @@ class ClientBase(BaseModel):
     phone_number: Optional[str] = None
     address: Optional[str] = None
     company: Optional[str] = None
+    logo_url: Optional[str] = None
     gst_number: Optional[str] = None
+    website: Optional[str] = None
+    notes: Optional[str] = None
 
 class ClientCreate(ClientBase):
     pass
@@ -21,6 +24,8 @@ class ClientUpdate(ClientBase):
     address: Optional[str] = None
     company: Optional[str] = None
     gst_number: Optional[str] = None
+    website: Optional[str] = None
+    notes: Optional[str] = None
 
 class ClientResponse(ClientBase):
     id: UUID
