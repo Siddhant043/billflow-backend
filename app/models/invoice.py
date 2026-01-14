@@ -25,6 +25,7 @@ class Invoice(Base):
     subtotal = Column(Numeric(10, 2), nullable=False)
     tax_amount = Column(Numeric(5,2), default=0)
     notes=Column(Text, nullable=True)
+    total_amount = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

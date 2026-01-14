@@ -1,7 +1,9 @@
 from uuid import UUID
-from sqlalchemy import select, func, and_
+from fastapi import HTTPException
+from sqlalchemy import select, func, and_, case
 from typing import List, Optional
 
+from app.models.invoice import Invoice, InvoiceStatus
 from app.models.client import Client
 from app.schemas.client import ClientCreate
 from app.schemas.client import ClientUpdate
@@ -21,9 +23,28 @@ class ClientService:
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None
-    ) -> List[Client]:
-        """List all clients for a user."""
-        query = select(Client).where(Client.user_id == user_id)
+    ) -> List[dict]:
+        """List all clients for a user with invoice statistics."""
+        # Build base query with aggregates
+        query = select(
+            Client,
+            func.coalesce(func.sum(Invoice.total_amount), 0).label("total_invoiced"),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Invoice.status == InvoiceStatus.OVERDUE, Invoice.total_amount),
+                        else_=0
+                    )
+                ),
+                0
+            ).label("total_outstanding"),
+            func.count(Invoice.id).label("total_number_of_invoices")
+        ).outerjoin(
+            Invoice, Client.id == Invoice.client_id
+        ).where(
+            Client.user_id == user_id
+        )
+        
         if search:
             search_filter = f"%{search}%"
             query = query.where(
@@ -31,16 +52,39 @@ class ClientService:
                 (Client.email.ilike(search_filter)) |
                 (Client.company.ilike(search_filter))
             )
-        query = query.offset(skip).limit(limit).order_by(Client.name)
+        
+        query = query.group_by(Client.id).offset(skip).limit(limit).order_by(Client.name)
         
         result = await self.db.execute(query)
-        return result.scalars().all()
+        rows = result.all()
+        
+        # Transform results to list of dictionaries
+        clients = []
+        for row in rows:
+            client = row[0]  # Client object
+            clients.append({
+                "id": client.id,
+                "user_id": client.user_id,
+                "name": client.name,
+                "email": client.email,
+                "phone_number": client.phone_number,
+                "address": client.address,
+                "company": client.company,
+                "gst_number": client.gst_number,
+                "created_at": client.created_at,
+                "updated_at": client.updated_at,
+                "total_invoiced": float(row.total_invoiced),
+                "total_outstanding": float(row.total_outstanding),
+                "total_number_of_invoices": row.total_number_of_invoices
+            })
+        
+        return clients
 
     async def get_client(
         self,
         user_id:UUID,
         client_id:UUID
-    ) -> Optional[Client]:
+    ) -> Optional[dict]:
         """Get a client by id."""
         cache_key = f"client:{client_id}"
         cached = await redis_client.get(cache_key)
@@ -67,12 +111,12 @@ class ClientService:
                 "user_id": str(client.user_id),
                 "name": client.name,
                 "email": client.email,
-                "phone": client.phone,
+                "phone_number": client.phone_number,
                 "address": client.address,
                 "company": client.company,
-                "tax_id": client.tax_id,
+                "gst_number": client.gst_number,
                 "created_at": client.created_at.isoformat(),
-                "updated_at": client.updated_at.isoformat()
+                "updated_at": client.updated_at.isoformat(),
             }
             await redis_client.set_json(cache_key, client_dict, expire=1800)
         
@@ -122,7 +166,7 @@ class ClientService:
 
     async def delete_client(self, client_id: UUID, user_id: UUID) -> bool:
         """Delete a client."""
-        client = await self.get_client(client_id, user_id)
+        client = await self.get_client(user_id, client_id)
         
         if not client:
             return False
@@ -138,7 +182,7 @@ class ClientService:
 
     async def get_client_stats(self, client_id: UUID, user_id: UUID) -> dict:
         """Get client statistics."""
-        client = await self.get_client(client_id, user_id)
+        client = await self.get_client(user_id, client_id)
         
         if not client:
             return None
