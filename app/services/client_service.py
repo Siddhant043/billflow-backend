@@ -89,7 +89,7 @@ class ClientService:
     ) -> Optional[dict]:
         """Get a client by id."""
         cache_key = f"client:{client_id}"
-        cached = await redis_client.get(cache_key)
+        cached = await redis_client.get_json(cache_key)
 
         if cached:
             if cached.get("user_id") == str(user_id):
