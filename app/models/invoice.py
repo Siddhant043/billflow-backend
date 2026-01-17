@@ -33,6 +33,7 @@ class Invoice(Base):
     user = relationship("User", back_populates="invoices")
     client = relationship("Client", back_populates="invoices")
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"Invoice(id={self.id}, invoice_number={self.invoice_number})"

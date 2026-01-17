@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.redis import redis_client
 from app.core.rabbitmq import rabbitmq_client
-from app.api.v1 import auth, users, clients, invoices
+from app.api.v1 import auth, users, clients, invoices, payments
 
 # Configure logging
 
@@ -68,6 +68,7 @@ app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(clients.router, prefix=settings.API_V1_PREFIX)
 app.include_router(invoices.router, prefix=settings.API_V1_PREFIX)
+app.include_router(payments.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

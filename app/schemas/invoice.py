@@ -1,63 +1,91 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional, List
+from datetime import date, datetime
 from uuid import UUID
-from enum import Enum
+from decimal import Decimal
 
-class InvoiceStatus(str, Enum):
-    DRAFT = "draft"
-    SENT = "sent"
-    PAID = "paid"
-    OVERDUE = "overdue"
-    CANCELLED = "cancelled"
+from app.models.invoice import InvoiceStatus
+
+class InvoiceItemBase(BaseModel):
+    description: Optional[str] = None
+    quantity: int = Field(gt=0)
+    unit_price: Decimal = Field(gt=0)
+
+class InvoiceItemCreate(InvoiceItemBase):
+    pass
+
+class InvoiceItemResponse(InvoiceItemBase):
+    id: UUID
+    total: Decimal
+
+    class Config:
+        from_attributes = True
 
 class InvoiceBase(BaseModel):
-    client_id: UUID
-    invoice_number: str
-    invoice_date: datetime
-    issue_date: datetime
-    due_date: datetime
-    total_amount: float
-    tax_amount: float
-    discount_amount: float
-    status: InvoiceStatus
+    client_id:UUID
+    due_date: date
+    issue_date: date
+    tax_rate: Decimal = Field(gt=0)
+    discount: Decimal = Field(gt=0)
     notes: Optional[str] = None
-    items: list[InvoiceItemBase] = Field(default_factory=list)
+    
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.due_date < self.issue_date:
+            raise ValueError('Due date must be after issue date')
+        return self
 
 class InvoiceCreate(InvoiceBase):
+    items: List[InvoiceItemCreate] = Field(..., min_length=1)
     status: InvoiceStatus = InvoiceStatus.DRAFT
 
 class InvoiceUpdate(InvoiceBase):
     client_id: Optional[UUID] = None
-    invoice_number: Optional[str] = None
-    invoice_date: Optional[datetime] = None
-    issue_date: Optional[datetime] = None
-    due_date: Optional[datetime] = None
-    discount_amount: Optional[float] = None
-    total_amount: Optional[float] = None
-    tax_amount: Optional[float] = None
-    status: Optional[InvoiceStatus] = None
+    issue_date: Optional[date] = None
+    due_date: Optional[date] = None
+    status: Optional[InvoiceStatus] = InvoiceStatus.DRAFT
+    tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    discount: Optional[Decimal] = Field(None, ge=0)
     notes: Optional[str] = None
-    items: Optional[list[InvoiceItemBase]] = None
-    class Config:
-        from_attributes = True
+    items: Optional[List[InvoiceItemCreate]] = None
+
 
 class InvoiceResponse(InvoiceBase):
     id: UUID
     user_id: UUID
+    invoice_number: str
+    status: InvoiceStatus
+    subtotal: Decimal
+    tax_amount: Decimal
+    total_amount: Decimal
+    sent_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    items: List[InvoiceItemResponse] = []
+    
     class Config:
         from_attributes = True
 
-class InvoiceWithStats(InvoiceResponse):
+
+class InvoiceWithClient(InvoiceResponse):
+    client_name: Optional[str] = None
+    client_email: Optional[str] = None
+    client_company: Optional[str] = None
+
+
+class InvoiceListResponse(BaseModel):
+    invoices: List[InvoiceWithClient]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class InvoiceSummary(BaseModel):
     total_invoices: int
-    total_revenue: float
-    outstanding_amount: float
-
-class InvoiceItemBase(BaseModel):
-    invoice_id: UUID
-    item_name: str
-    quantity: int
-    unit_price: float
-
+    total_revenue: Decimal
+    paid_invoices: int
+    pending_invoices: int
+    overdue_invoices: int
+    draft_invoices: int
