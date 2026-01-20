@@ -20,7 +20,7 @@ class Payment(Base):
     __tablename__ = "payments"
     
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    invoice_id = Column(UUID(as_uuid=True), ForeignKey("inovoices.id", ondelete="CASCADE"), nullable=False)
+    invoice_id = Column(UUID(as_uuid=True), ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     payment_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False)

@@ -14,18 +14,29 @@ class InvoiceStatus(str, Enum):
     CANCELLED = "cancelled"
 
 class Invoice(Base):
-    __tablename__="inovoices"
+    __tablename__="invoices"
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete= "CASCADE"), nullable=False)
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete= "CASCADE"), nullable=False)
-    invoice_number = Column(String(225), nullable=False)
-    issue_date = Column(DateTime, nullable=False)
-    due_date = Column(DateTime, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
+    invoice_number = Column(String(225), unique=True, nullable=False)
+    issue_date = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=False)
     status = Column(SQLEnum(InvoiceStatus), default=InvoiceStatus.DRAFT, nullable=False)
+    
+    # Financial columns
     subtotal = Column(Numeric(10, 2), nullable=False)
-    tax_amount = Column(Numeric(5,2), default=0)
-    notes=Column(Text, nullable=True)
+    tax_rate = Column(Numeric(5, 2), default=0)
+    tax_amount = Column(Numeric(10, 2), default=0)
+    discount = Column(Numeric(10, 2), default=0)
     total_amount = Column(Numeric(10, 2), nullable=False)
+    
+    # Additional fields
+    notes = Column(Text, nullable=True)
+    terms = Column(Text, nullable=True)
+    
+    # Timestamps
+    sent_at = Column(DateTime, nullable=True)
+    paid_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -41,15 +52,15 @@ class Invoice(Base):
 class InvoiceItem(Base):
     __tablename__="invoice_items"
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    invoice_id = Column(UUID(as_uuid=True), ForeignKey("inovoices.id", ondelete= "CASCADE"), nullable=False)
-    item_name= Column(String(225), nullable=False)
-    quantity= Column(Numeric(10,2), nullable=False)
-    unit_price= Column(Numeric(10,2), nullable=False)
+    invoice_id = Column(UUID(as_uuid=True), ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False)
+    description = Column(String(500), nullable=True)
+    quantity = Column(Numeric(10, 2), nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)
+    total = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     invoice = relationship("Invoice", back_populates="items")
 
     def __repr__(self):
-        return f"InvoiceItem(id={self.id}, item_name={self.item_name})"
-    
+        return f"InvoiceItem(id={self.id}, description={self.description})"

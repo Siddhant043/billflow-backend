@@ -21,7 +21,7 @@ class InvoiceService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    async def create_invoice(self, invoice: InvoiceCreate):
+    async def generate_invoice_number(self, user_id: UUID) -> str:
         """Generate unique invoice number."""
         # Get the count of user's invoices
 
@@ -74,8 +74,8 @@ class InvoiceService:
 
     async def create_invoice(
         self,
-        invoice: InvoiceCreate,
-        user_id:UUID
+        user_id: UUID,
+        invoice_data: InvoiceCreate
     ) -> Invoice:
         """Create a new invoice."""
         # Verify client belongs to user if provided
@@ -110,7 +110,6 @@ class InvoiceService:
             issue_date=invoice_data.issue_date,
             due_date=invoice_data.due_date,
             status=InvoiceStatus.DRAFT,
-            tax_rate=invoice_data.tax_rate,
             discount=invoice_data.discount,
             notes=invoice_data.notes,
             subtotal=totals["subtotal"],

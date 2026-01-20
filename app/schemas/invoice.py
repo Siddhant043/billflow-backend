@@ -25,8 +25,8 @@ class InvoiceBase(BaseModel):
     client_id:UUID
     due_date: date
     issue_date: date
-    tax_rate: Decimal = Field(gt=0)
-    discount: Decimal = Field(gt=0)
+    tax_rate: Decimal = Field(ge=0)
+    discount: Decimal = Field(ge=0)
     notes: Optional[str] = None
     
     @model_validator(mode='after')
