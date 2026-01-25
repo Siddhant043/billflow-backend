@@ -15,6 +15,7 @@ class User(Base):
     company_name = Column(String)
     phone_number = Column(String)
     address = Column(String)
+    phone = Column(String)
     logo_url = Column(String)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
